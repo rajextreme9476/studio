@@ -23,11 +23,11 @@ export const Icons = {
       <path fill="#004C94" d="M119.6 119.6h16.9v16.9h-16.9z"/>
       <defs>
         <radialGradient id="a" cx="0" cy="0" r="1" gradientTransform="matrix(0 256 -256 0 128 0)" gradientUnits="userSpaceOnUse">
-          <stop stop-color="#0052A1"/>
-          <stop offset=".178" stop-color="#004F9C"/>
-          <stop offset=".413" stop-color="#00458C"/>
-          <stop offset=".684" stop-color="#00336D"/>
-          <stop offset="1" stop-color="#001F48"/>
+          <stop stopColor="#0052A1"/>
+          <stop offset=".178" stopColor="#004F9C"/>
+          <stop offset=".413" stopColor="#00458C"/>
+          <stop offset=".684" stopColor="#00336D"/>
+          <stop offset="1" stopColor="#001F48"/>
         </radialGradient>
       </defs>
     </svg>

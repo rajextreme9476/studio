@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -55,7 +54,7 @@ export function ReviewUploader({ onUpload, onClassificationChange, isClassifying
         skipEmptyLines: true,
         complete: async (results) => {
           const headers = results.meta.fields;
-          const requiredHeaders = ['Star Rating', 'Review Text', 'Review Submit Date and Time', 'Review Submit Millis Since Epoch', 'Review Link', 'Device'];
+          const requiredHeaders = ['Star Rating', 'Review Text', 'Review Submit Date and Time', 'Review Link', 'Device'];
 
           if (!headers || !requiredHeaders.every(h => headers.includes(h))) {
               const missingHeaders = requiredHeaders.filter(h => !headers?.includes(h));
@@ -72,9 +71,14 @@ export function ReviewUploader({ onUpload, onClassificationChange, isClassifying
           }
 
           try {
+            // Filter out rows where all values are empty, which can happen with trailing newlines in CSVs
+            const nonEmptyData = results.data.filter((row: any) => 
+                Object.values(row).some(val => val !== null && val !== '')
+            );
+
             // Transform and validate data
             const parsedReviews = z.array(ReviewSchema).parse(
-              results.data.map((row: any) => ({
+              nonEmptyData.map((row: any) => ({
                 id: row['Review Link'] || row['Review Submit Millis Since Epoch'] || crypto.randomUUID(),
                 platform: row['Device']?.toLowerCase().includes('phone') ? 'Android' : 'iOS',
                 author: `User ${ (row['Review Submit Millis Since Epoch'] || '').slice(-4)}`,

@@ -19,6 +19,8 @@ export default function DashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [swot, setSwot] = useState<SwotAnalysis | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [isClassifying, setIsClassifying] = useState(false);
+
 
   const handleReviewsUploaded = (newReviews: Review[]) => {
     setReviews(newReviews);
@@ -29,8 +31,10 @@ export default function DashboardPage() {
   const filteredReviews = useMemo(() => {
     if (reviews.length === 0 || dateRange === 'all') return reviews;
     
-    const latestReviewDate = reviews.reduce((latest, review) => {
-      const reviewDate = parseISO(review.date);
+    const reviewDates = reviews.map(r => parseISO(r.date)).filter(d => !isNaN(d.getTime()));
+    if (reviewDates.length === 0) return reviews;
+
+    const latestReviewDate = reviewDates.reduce((latest, reviewDate) => {
       return reviewDate > latest ? reviewDate : latest;
     }, new Date(0));
 
@@ -55,7 +59,10 @@ export default function DashboardPage() {
       default:
         return reviews;
     }
-    return reviews.filter(review => isAfter(parseISO(review.date), fromDate));
+    return reviews.filter(review => {
+      const reviewDate = parseISO(review.date);
+      return !isNaN(reviewDate.getTime()) && isAfter(reviewDate, fromDate);
+    });
   }, [reviews, dateRange]);
 
   const handleDateRangeChange = (range: DateRange) => {
@@ -76,7 +83,10 @@ export default function DashboardPage() {
             Export your reviews as a CSV file and drop it here to get started.
           </p>
           <div className="mt-6">
-            <ReviewUploader onUpload={handleReviewsUploaded} />
+            <ReviewUploader 
+              onUpload={handleReviewsUploaded} 
+              onClassificationChange={setIsClassifying}
+            />
           </div>
         </div>
       </CardContent>
@@ -99,7 +109,11 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="mb-4">
-              <ReviewUploader onUpload={handleReviewsUploaded} />
+              <ReviewUploader 
+                onUpload={handleReviewsUploaded} 
+                onClassificationChange={setIsClassifying}
+                isClassifying={isClassifying}
+              />
             </div>
             <Tabs defaultValue="overview" className="space-y-4">
               <TabsList>

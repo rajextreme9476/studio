@@ -2,18 +2,32 @@ import { z } from 'zod';
 
 export type ReviewTheme = 'Login' | 'Privacy' | 'Crash' | 'UPI' | 'Credit Card' | 'Registration' | 'General';
 
-// Adjusted to handle potential string-to-number conversion and provide defaults
+// Base schema for what the AI will return
+export const ReviewClassificationSchema = z.object({
+  id: z.string(),
+  sentiment: z.enum(['Positive', 'Negative', 'Neutral']),
+  theme: z.enum(['Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General']),
+});
+
+// This is the main schema used throughout the application.
+// It preprocesses raw CSV data to create a valid Review object.
 export const ReviewSchema = z.preprocess(
   (data: any) => ({
-    ...data,
-    rating: data.rating ? parseInt(data.rating, 10) : 0,
-    sentiment: data.sentiment || 'Neutral', // Default sentiment if missing
+    id: data.id || crypto.randomUUID(),
+    platform: data.platform || 'Android',
+    author: data.author || 'Anonymous',
+    rating: data.rating ? parseInt(String(data.rating), 10) : 0,
+    text: data.text || '',
+    date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+    // Default values before AI classification
+    sentiment: data.sentiment || 'Neutral', 
+    theme: data.theme || 'General',
   }),
   z.object({
     id: z.string(),
     platform: z.enum(['iOS', 'Android']),
     author: z.string(),
-    rating: z.number().int().min(1).max(5),
+    rating: z.number().int().min(0).max(5), // allow 0 rating for parsing robustness
     text: z.string(),
     date: z.string().refine((date) => !isNaN(Date.parse(date)), {
       message: "Invalid date format",

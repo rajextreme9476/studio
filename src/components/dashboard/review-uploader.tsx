@@ -7,17 +7,27 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Review } from '@/types';
 import { ReviewSchema } from '@/types';
-import { Upload, FileCheck2, FileX2, Loader2 } from 'lucide-react';
+import { Upload, FileCheck2, FileX2, Loader2, Wand2 } from 'lucide-react';
 import { z } from 'zod';
+import { classifyReviews } from '@/ai/flows/classify-reviews-flow';
 
 type ReviewUploaderProps = {
   onUpload: (reviews: Review[]) => void;
+  onClassificationChange: (isClassifying: boolean) => void;
+  isClassifying?: boolean;
 };
 
-// Define expected CSV headers
-const expectedHeaders = ['id', 'platform', 'author', 'rating', 'text', 'date', 'sentiment', 'theme'];
+// Define expected CSV headers from user's file
+const expectedHeaders = [
+  'Star Rating',
+  'Review Text',
+  'Review Submit Date and Time',
+  'Review Submit Millis Since Epoch',
+  'Review Link',
+  'Device'
+];
 
-export function ReviewUploader({ onUpload }: ReviewUploaderProps) {
+export function ReviewUploader({ onUpload, onClassificationChange, isClassifying }: ReviewUploaderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,17 +52,18 @@ export function ReviewUploader({ onUpload }: ReviewUploaderProps) {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
-          setIsLoading(false);
+        complete: async (results) => {
           const headers = results.meta.fields;
           if (!headers || !expectedHeaders.every(h => headers.includes(h))) {
-              setError(`CSV headers are incorrect. Expected: ${expectedHeaders.join(', ')}`);
+              const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
+              setError(`CSV missing required headers: ${missingHeaders.join(', ')}`);
               toast({
                   variant: 'destructive',
                   title: 'Invalid CSV Header',
-                  description: `Please ensure the CSV has the correct headers: ${expectedHeaders.join(', ')}`,
+                  description: `Please ensure the CSV has the correct headers. Missing: ${missingHeaders.join(', ')}`,
               });
               setFileName(null);
+              setIsLoading(false);
               return;
           }
 
@@ -60,34 +71,49 @@ export function ReviewUploader({ onUpload }: ReviewUploaderProps) {
             // Transform and validate data
             const parsedReviews = z.array(ReviewSchema).parse(
               results.data.map((row: any) => ({
-                ...row,
-                rating: parseInt(row.rating, 10), // Papa returns strings
+                id: row['Review Link'] || row['Review Submit Millis Since Epoch'] || crypto.randomUUID(),
+                platform: row['Device']?.toLowerCase().includes('phone') ? 'Android' : 'iOS', // A simple guess
+                author: `User ${ (row['Review Submit Millis Since Epoch'] || '').slice(-4)}`, // Create anonymous author
+                rating: parseInt(row['Star Rating'], 10) || 0,
+                text: row['Review Text'] || '',
+                date: new Date(row['Review Submit Date and Time']).toISOString(),
               }))
             );
-            onUpload(parsedReviews);
+            
             toast({
               title: 'Upload Successful',
-              description: `${parsedReviews.length} reviews have been loaded.`,
+              description: `${parsedReviews.length} reviews loaded. Now classifying with AI...`,
             });
+            onClassificationChange(true);
+
+            // Now, classify the reviews
+            const classified = await classifyReviews(parsedReviews);
+            onUpload(classified);
+            
+            toast({
+              title: 'Classification Complete',
+              description: 'AI analysis has been applied to all reviews.',
+            });
+
           } catch (e) {
+            let errorMessage = 'An unexpected error occurred during processing.';
             if (e instanceof z.ZodError) {
               console.error(e.errors);
-              const errorMessage = e.errors.map(err => `Row validation failed: ${err.path.join('.')} - ${err.message}`).slice(0, 2).join('; ');
+              errorMessage = e.errors.map(err => `Row validation failed: ${err.path.join('.')} - ${err.message}`).slice(0, 2).join('; ');
               setError(`Data validation failed. ${errorMessage}`);
-              toast({
-                variant: 'destructive',
-                title: 'Validation Error',
-                description: `The data in the CSV does not match the required format. ${errorMessage}`,
-              });
-            } else {
-              setError('An unexpected error occurred during parsing.');
-              toast({
-                variant: 'destructive',
-                title: 'Parsing Error',
-                description: 'Could not process the CSV file.',
-              });
+            } else if (e instanceof Error) {
+                errorMessage = e.message;
             }
+            console.error(e);
+            toast({
+              variant: 'destructive',
+              title: 'Processing Error',
+              description: errorMessage,
+            });
             setFileName(null);
+          } finally {
+            setIsLoading(false);
+            onClassificationChange(false);
           }
         },
         error: (err: Error) => {
@@ -102,20 +128,30 @@ export function ReviewUploader({ onUpload }: ReviewUploaderProps) {
         },
       });
     },
-    [onUpload, toast]
+    [onUpload, toast, onClassificationChange]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
     accept: { 'text/csv': ['.csv'] },
+    disabled: isLoading || isClassifying,
   });
   
   const getIcon = () => {
       if (isLoading) return <Loader2 className="h-5 w-5 animate-spin" />;
+      if (isClassifying) return <Wand2 className="h-5 w-5 animate-pulse" />;
       if (error) return <FileX2 className="h-5 w-5 text-destructive" />;
       if (fileName) return <FileCheck2 className="h-5 w-5 text-green-500" />;
       return <Upload className="h-5 w-5" />;
+  }
+  
+  const getMessage = () => {
+    if (isLoading) return 'Parsing file...';
+    if (isClassifying) return 'Applying AI classification...';
+    if (error) return error;
+    if (fileName) return `Loaded: ${fileName}`;
+    return 'Drag & drop a CSV file here, or click to select';
   }
 
   return (
@@ -123,17 +159,19 @@ export function ReviewUploader({ onUpload }: ReviewUploaderProps) {
       <div
         {...getRootProps()}
         className={`flex-grow border-2 border-dashed rounded-md p-4 text-center cursor-pointer transition-colors
-        ${isDragActive ? 'border-primary bg-accent' : 'border-border'}`}
+        ${isDragActive ? 'border-primary bg-accent' : 'border-border'}
+        ${(isLoading || isClassifying) ? 'cursor-not-allowed opacity-50' : ''}
+        `}
       >
         <input {...getInputProps()} />
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
             {getIcon()}
             <span className={error ? 'text-destructive' : ''}>
-                {isLoading ? 'Processing...' : error ? error : fileName ? `Loaded: ${fileName}` : 'Drag & drop a CSV file here, or click to select'}
+                {getMessage()}
             </span>
         </div>
       </div>
-      <Button onClick={() => getRootProps().onClick?.(null as any)} disabled={isLoading}>
+      <Button onClick={() => getRootProps().onClick?.(null as any)} disabled={isLoading || isClassifying}>
         {fileName ? 'Upload New' : 'Upload File'}
       </Button>
     </div>

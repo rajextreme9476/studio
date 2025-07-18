@@ -2,7 +2,7 @@
 
 import { generateSwotAnalysis } from '@/ai/flows/generate-swot-analysis';
 import { suggestImprovements } from '@/ai/flows/suggest-improvements';
-import type { Review } from '@/types';
+import type { Review, SwotItem } from '@/types';
 
 // This action is no longer needed as we upload data, but we'll keep the file for other actions.
 // import { fetchReviews } from '@/ai/flows/fetch-reviews-flow';
@@ -49,18 +49,22 @@ export async function generateSwotAction(reviews: Review[]) {
 }
 
 export async function generateRecommendationsAction(
-  weaknesses: string,
+  weaknesses: SwotItem[],
   reviews: Review[]
 ) {
-  const negativeReviews = reviews
+  const negativeReviewsSummary = reviews
     .filter((r) => r.sentiment === 'Negative')
     .map((r) => r.text)
     .join('\n');
     
+  const identifiedWeaknesses = weaknesses
+    .map(w => `${w.title} | ${w.description}`)
+    .join('\n');
+
   try {
     const result = await suggestImprovements({
-      identifiedWeaknesses: weaknesses,
-      negativeReviews: negativeReviews,
+      identifiedWeaknesses,
+      negativeReviewsSummary,
     });
     return { success: true, data: result };
   } catch (error) {

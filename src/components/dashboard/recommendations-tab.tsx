@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { generateRecommendationsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { Review, SwotAnalysis } from '@/types';
-import { Bot, Wand2 } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 type RecommendationsTabProps = {
   swot: SwotAnalysis | null;
@@ -36,8 +36,9 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
     }
     setIsLoading(true);
     setRecommendations(null);
-    const weaknessesText = swot.weaknesses.map(w => `${w.title}: ${w.description}`).join('\n');
-    const result = await generateRecommendationsAction(weaknessesText, reviews);
+
+    const result = await generateRecommendationsAction(swot.weaknesses, reviews);
+    
     setIsLoading(false);
     if (result.success && result.data) {
       setRecommendations(result.data.suggestions);
@@ -66,10 +67,11 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
       );
     }
     if (recommendations) {
+      // Using a div with dangerouslySetInnerHTML to render markdown
+      // In a real app, you might use a library like 'marked' or 'react-markdown' for safety.
+      const markup = { __html: recommendations.replace(/\n/g, '<br />').replace(/### (.*)/g, '<h3>$1</h3>').replace(/\* (.*)/g, '<li>$1</li>') };
       return (
-        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line text-muted-foreground">
-         {recommendations}
-        </div>
+        <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={markup} />
       );
     }
     return (

@@ -2,7 +2,18 @@
 
 import { generateSwotAnalysis } from '@/ai/flows/generate-swot-analysis';
 import { suggestImprovements } from '@/ai/flows/suggest-improvements';
+import { fetchReviews } from '@/ai/flows/fetch-reviews-flow';
 import type { Review } from '@/types';
+
+export async function getReviewsAction() {
+    try {
+        const result = await fetchReviews();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: 'Failed to fetch reviews.' };
+    }
+}
 
 export async function generateSwotAction(reviews: Review[]) {
   const positiveReviews = reviews

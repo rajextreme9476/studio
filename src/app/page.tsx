@@ -1,23 +1,43 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OverviewTab } from '@/components/dashboard/overview-tab';
 import { ReviewExplorerTab } from '@/components/dashboard/review-explorer-tab';
 import { SwotTab } from '@/components/dashboard/swot-tab';
 import { RecommendationsTab } from '@/components/dashboard/recommendations-tab';
-import { reviews as rawReviewsData } from '@/lib/data';
 import type { Review, SwotAnalysis } from '@/types';
 import { DateRangeFilter, type DateRange } from '@/components/dashboard/date-range-filter';
 import { subDays, isAfter, parseISO } from 'date-fns';
+import { getReviewsAction } from './actions';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function DashboardPage() {
-  const [reviews] = useState<Review[]>(rawReviewsData);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [swot, setSwot] = useState<SwotAnalysis | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>('30d');
 
+  useEffect(() => {
+    async function loadReviews() {
+      setIsLoading(true);
+      const result = await getReviewsAction();
+      if (result.success && result.data) {
+        setReviews(result.data);
+      } else {
+        console.error(result.error);
+        // Optionally, show a toast notification for the error
+      }
+      setIsLoading(false);
+    }
+    loadReviews();
+  }, []);
+
   const filteredReviews = useMemo(() => {
+    if (reviews.length === 0) return [];
+    
     // Find the latest date in the reviews to use as the "today" for filtering
     const latestReviewDate = reviews.reduce((latest, review) => {
       const reviewDate = parseISO(review.date);
@@ -52,6 +72,22 @@ export default function DashboardPage() {
     setDateRange(range);
     setSwot(null); // Reset SWOT analysis when date range changes
   };
+  
+  const renderLoadingSkeleton = () => (
+    <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+        </div>
+        <Card>
+            <CardContent className="p-6">
+                <Skeleton className="h-[300px]" />
+            </CardContent>
+        </Card>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -68,18 +104,24 @@ export default function DashboardPage() {
             <TabsTrigger value="swot-analysis">SWOT Analysis</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
           </TabsList>
-          <TabsContent value="overview">
-            <OverviewTab reviews={filteredReviews} />
-          </TabsContent>
-          <TabsContent value="review-explorer">
-            <ReviewExplorerTab reviews={filteredReviews} />
-          </TabsContent>
-          <TabsContent value="swot-analysis">
-            <SwotTab reviews={filteredReviews} onAnalysisComplete={setSwot} />
-          </TabsContent>
-          <TabsContent value="recommendations">
-            <RecommendationsTab swot={swot} reviews={filteredReviews} />
-          </TabsContent>
+          {isLoading ? (
+            renderLoadingSkeleton()
+          ) : (
+            <>
+              <TabsContent value="overview">
+                <OverviewTab reviews={filteredReviews} />
+              </TabsContent>
+              <TabsContent value="review-explorer">
+                <ReviewExplorerTab reviews={filteredReviews} />
+              </TabsContent>
+              <TabsContent value="swot-analysis">
+                <SwotTab reviews={filteredReviews} onAnalysisComplete={setSwot} />
+              </TabsContent>
+              <TabsContent value="recommendations">
+                <RecommendationsTab swot={swot} reviews={filteredReviews} />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </main>
     </div>

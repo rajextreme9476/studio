@@ -13,12 +13,14 @@ import { subDays, isAfter, parseISO } from 'date-fns';
 import { getReviewsAction } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [swot, setSwot] = useState<SwotAnalysis | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>('30d');
+  const { toast } = useToast();
 
   useEffect(() => {
     async function loadReviews() {
@@ -28,12 +30,16 @@ export default function DashboardPage() {
         setReviews(result.data);
       } else {
         console.error(result.error);
-        // Optionally, show a toast notification for the error
+        toast({
+            variant: 'destructive',
+            title: 'Failed to load reviews',
+            description: result.error,
+        });
       }
       setIsLoading(false);
     }
     loadReviews();
-  }, []);
+  }, [toast]);
 
   const filteredReviews = useMemo(() => {
     if (reviews.length === 0) return [];

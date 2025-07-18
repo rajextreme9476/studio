@@ -1,49 +1,34 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Header } from '@/components/header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OverviewTab } from '@/components/dashboard/overview-tab';
 import { ReviewExplorerTab } from '@/components/dashboard/review-explorer-tab';
 import { SwotTab } from '@/components/dashboard/swot-tab';
 import { RecommendationsTab } from '@/components/dashboard/recommendations-tab';
+import { ReviewUploader } from '@/components/dashboard/review-uploader';
 import type { Review, SwotAnalysis } from '@/types';
 import { DateRangeFilter, type DateRange } from '@/components/dashboard/date-range-filter';
 import { subDays, isAfter, parseISO } from 'date-fns';
-import { getReviewsAction } from './actions';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UploadCloud } from 'lucide-react';
+
 
 export default function DashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [swot, setSwot] = useState<SwotAnalysis | null>(null);
-  const [dateRange, setDateRange] = useState<DateRange>('30d');
-  const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRange>('all');
 
-  useEffect(() => {
-    async function loadReviews() {
-      setIsLoading(true);
-      const result = await getReviewsAction();
-      if (result.success && result.data) {
-        setReviews(result.data);
-      } else {
-        toast({
-            variant: 'destructive',
-            title: 'Failed to load reviews',
-            description: result.error,
-        });
-      }
-      setIsLoading(false);
-    }
-    loadReviews();
-  }, [toast]);
+  const handleReviewsUploaded = (newReviews: Review[]) => {
+    setReviews(newReviews);
+    setSwot(null); // Reset analysis when new data is uploaded
+    setDateRange('all'); // Reset date range to show all new data
+  };
 
   const filteredReviews = useMemo(() => {
-    if (reviews.length === 0) return [];
+    if (reviews.length === 0 || dateRange === 'all') return reviews;
     
-    // Find the latest date in the reviews to use as the "today" for filtering
     const latestReviewDate = reviews.reduce((latest, review) => {
       const reviewDate = parseISO(review.date);
       return reviewDate > latest ? reviewDate : latest;
@@ -75,23 +60,27 @@ export default function DashboardPage() {
 
   const handleDateRangeChange = (range: DateRange) => {
     setDateRange(range);
-    setSwot(null); // Reset SWOT analysis when date range changes
+    setSwot(null);
   };
   
-  const renderLoadingSkeleton = () => (
-    <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
+  const renderEmptyState = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Welcome to HDFC App Insights</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+          <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">Upload Your Review Data</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Export your reviews as a CSV file and drop it here to get started.
+          </p>
+          <div className="mt-6">
+            <ReviewUploader onUpload={handleReviewsUploaded} />
+          </div>
         </div>
-        <Card>
-            <CardContent className="p-6">
-                <Skeleton className="h-[300px]" />
-            </CardContent>
-        </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 
   return (
@@ -100,19 +89,25 @@ export default function DashboardPage() {
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <DateRangeFilter value={dateRange} onValueChange={handleDateRangeChange} />
+            {reviews.length > 0 && (
+              <DateRangeFilter value={dateRange} onValueChange={handleDateRangeChange} />
+            )}
         </div>
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="review-explorer">Review Explorer</TabsTrigger>
-            <TabsTrigger value="swot-analysis">SWOT Analysis</TabsTrigger>
-            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-          </TabsList>
-          {isLoading ? (
-            renderLoadingSkeleton()
-          ) : (
-            <>
+
+        {reviews.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          <>
+            <div className="mb-4">
+              <ReviewUploader onUpload={handleReviewsUploaded} />
+            </div>
+            <Tabs defaultValue="overview" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="review-explorer">Review Explorer</TabsTrigger>
+                <TabsTrigger value="swot-analysis">SWOT Analysis</TabsTrigger>
+                <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+              </TabsList>
               <TabsContent value="overview">
                 <OverviewTab reviews={filteredReviews} />
               </TabsContent>
@@ -125,9 +120,9 @@ export default function DashboardPage() {
               <TabsContent value="recommendations">
                 <RecommendationsTab swot={swot} reviews={filteredReviews} />
               </TabsContent>
-            </>
-          )}
-        </Tabs>
+            </Tabs>
+          </>
+        )}
       </main>
     </div>
   );

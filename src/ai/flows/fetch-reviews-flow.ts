@@ -12,6 +12,8 @@ import { ReviewSchema } from '@/types';
 
 const FetchReviewsOutputSchema = z.array(ReviewSchema);
 
+// This flow is no longer directly used by the UI but is kept as an example
+// of how dynamic fetching could be re-enabled.
 export async function fetchReviews(): Promise<z.infer<typeof FetchReviewsOutputSchema>> {
     return fetchReviewsFlow();
 }
@@ -27,6 +29,8 @@ const fetchReviewsFlow = ai.defineFlow(
     const hdfcAppIdentifier = 'com.hdfcbank.android.now'; 
     
     const reviews = await fetchAppReviews({ appIdentifier: hdfcAppIdentifier });
-    return reviews;
+    // The Zod schema will throw an error if the data is invalid.
+    // This ensures that the data returned by the tool is always in the correct format.
+    return FetchReviewsOutputSchema.parse(reviews);
   }
 );

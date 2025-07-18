@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export type DateRange = '7d' | '30d' | '90d' | '180d' | '1y';
+export type DateRange = '7d' | '30d' | '90d' | '180d' | '1y' | 'all';
 
 type DateRangeFilterProps = {
     value: DateRange;
@@ -22,6 +22,7 @@ export function DateRangeFilter({ value, onValueChange }: DateRangeFilterProps) 
         <SelectValue placeholder="Select date range" />
       </SelectTrigger>
       <SelectContent>
+        <SelectItem value="all">All Time</SelectItem>
         <SelectItem value="7d">Last 7 Days</SelectItem>
         <SelectItem value="30d">Last 30 Days</SelectItem>
         <SelectItem value="90d">Last 90 Days</SelectItem>

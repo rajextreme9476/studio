@@ -13,16 +13,18 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Download, ListFilter } from 'lucide-react';
+import { Download, ListFilter, AlertCircle } from 'lucide-react';
 import type { Review, ReviewTheme } from '@/types';
-import { reviews as allReviews } from '@/lib/data';
 import { Icons, IconKey } from '@/components/icons';
+import { ScrollArea } from '../ui/scroll-area';
 
 const sentimentVariantMap: Record<Review['sentiment'], 'default' | 'destructive' | 'secondary'> = {
   Positive: 'default',
@@ -30,15 +32,19 @@ const sentimentVariantMap: Record<Review['sentiment'], 'default' | 'destructive'
   Neutral: 'secondary',
 };
 
+const allThemes: ReviewTheme[] = ['Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General'];
+const allSentiments: Review['sentiment'][] = ['Positive', 'Negative', 'Neutral'];
+const allPlatforms: Review['platform'][] = ['iOS', 'Android'];
+
+
 export function ReviewExplorerTab({ reviews: initialReviews }: { reviews: Review[] }) {
-  const [reviews] = useState(initialReviews);
   const [searchTerm, setSearchTerm] = useState('');
-  const [platformFilter, setPlatformFilter] = useState<('iOS' | 'Android')[]>([]);
+  const [platformFilter, setPlatformFilter] = useState<Review['platform'][]>([]);
   const [sentimentFilter, setSentimentFilter] = useState<Review['sentiment'][]>([]);
-  const [themeFilter, setthemeFilter] = useState<ReviewTheme[]>([]);
+  const [themeFilter, setThemeFilter] = useState<ReviewTheme[]>([]);
 
   const filteredReviews = useMemo(() => {
-    return reviews
+    return initialReviews
       .filter((review) =>
         review.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
         review.author.toLowerCase().includes(searchTerm.toLowerCase())
@@ -52,7 +58,7 @@ export function ReviewExplorerTab({ reviews: initialReviews }: { reviews: Review
       .filter((review) =>
         themeFilter.length === 0 || themeFilter.includes(review.theme)
       );
-  }, [reviews, searchTerm, platformFilter, sentimentFilter, themeFilter]);
+  }, [initialReviews, searchTerm, platformFilter, sentimentFilter, themeFilter]);
 
   const handleExport = () => {
     const headers = "ID,Platform,Author,Rating,Date,Sentiment,Theme,Text";
@@ -75,13 +81,21 @@ export function ReviewExplorerTab({ reviews: initialReviews }: { reviews: Review
     const Icon = Icons[iconKey];
     return Icon ? <Icon className="h-4 w-4 mr-2" /> : null;
   };
+  
+  const toggleFilter = <T,>(setter: React.Dispatch<React.SetStateAction<T[]>>, value: T) => {
+    setter(current => 
+      current.includes(value) 
+        ? current.filter(item => item !== value) 
+        : [...current, value]
+    );
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Review Explorer</CardTitle>
         <CardDescription>
-          Search, filter, and export raw review data.
+          Search, filter, and export raw review data. Found {filteredReviews.length} reviews.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -98,22 +112,43 @@ export function ReviewExplorerTab({ reviews: initialReviews }: { reviews: Review
                 <ListFilter className="mr-2 h-4 w-4" /> Filter
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {/* Platform Filter */}
-              <DropdownMenuCheckboxItem onCheckedChange={(c) => c ? setPlatformFilter(p => [...p, 'iOS']) : setPlatformFilter(p => p.filter(i => i !== 'iOS'))}>iOS</DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem onCheckedChange={(c) => c ? setPlatformFilter(p => [...p, 'Android']) : setPlatformFilter(p => p.filter(i => i !== 'Android'))}>Android</DropdownMenuCheckboxItem>
+            <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuLabel>Platform</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {allPlatforms.map(platform => (
+                    <DropdownMenuCheckboxItem key={platform} checked={platformFilter.includes(platform)} onCheckedChange={() => toggleFilter(setPlatformFilter, platform)}>
+                        {platform}
+                    </DropdownMenuCheckboxItem>
+                ))}
+                
+                <DropdownMenuLabel>Sentiment</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {allSentiments.map(sentiment => (
+                    <DropdownMenuCheckboxItem key={sentiment} checked={sentimentFilter.includes(sentiment)} onCheckedChange={() => toggleFilter(setSentimentFilter, sentiment)}>
+                        {sentiment}
+                    </DropdownMenuCheckboxItem>
+                ))}
+
+                <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {allThemes.map(theme => (
+                    <DropdownMenuCheckboxItem key={theme} checked={themeFilter.includes(theme)} onCheckedChange={() => toggleFilter(setThemeFilter, theme)}>
+                        {theme}
+                    </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={handleExport}>
+          <Button onClick={handleExport} disabled={filteredReviews.length === 0}>
             <Download className="mr-2 h-4 w-4" /> Export CSV
           </Button>
         </div>
+        <ScrollArea className="h-[60vh]">
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Author</TableHead>
-                <TableHead>Review</TableHead>
+                <TableHead className="w-[40%]">Review</TableHead>
                 <TableHead className="text-center">Sentiment</TableHead>
                 <TableHead className="text-center">Theme</TableHead>
                 <TableHead className="text-center">Rating</TableHead>
@@ -121,28 +156,40 @@ export function ReviewExplorerTab({ reviews: initialReviews }: { reviews: Review
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReviews.map((review) => (
-                <TableRow key={review.id}>
-                  <TableCell className="font-medium">{review.author}<br/><span className="text-muted-foreground text-xs">{review.platform}</span></TableCell>
-                  <TableCell className="max-w-md">{review.text}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={sentimentVariantMap[review.sentiment]}>
-                      {review.sentiment}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center">
-                      {getThemeIcon(review.theme)}
-                      <span>{review.theme}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">{review.rating}/5</TableCell>
-                  <TableCell>{review.date}</TableCell>
+              {filteredReviews.length > 0 ? (
+                filteredReviews.map((review) => (
+                  <TableRow key={review.id}>
+                    <TableCell className="font-medium">{review.author}<br/><span className="text-muted-foreground text-xs">{review.platform}</span></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{review.text}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={sentimentVariantMap[review.sentiment]}>
+                        {review.sentiment}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        {getThemeIcon(review.theme)}
+                        <span>{review.theme}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">{review.rating}/5</TableCell>
+                    <TableCell>{new Date(review.date).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                            <AlertCircle className="h-8 w-8 mb-2" />
+                            <span>No reviews match your filters.</span>
+                        </div>
+                    </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );

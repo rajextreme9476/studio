@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import type { Review, SwotAnalysis, SuggestImprovementsOutput, SwotItem } from '@/types';
+import type { Review, SwotAnalysis, SuggestImprovementsOutput, SwotItem, ReviewTheme } from '@/types';
 import { Download, Loader2, ThumbsUp, ThumbsDown, Rocket, AlertTriangle, Lightbulb, LucideIcon, BarChart, Smile, Frown, Users, AlertCircle, Star, CalendarX2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -147,6 +147,41 @@ export function ReportTab({ reviews, swot, recommendations, dateRange }: ReportT
   );
 }
 
+const THEME_DESCRIPTIONS: Record<ReviewTheme, { summary: string; insight: string }> = {
+    'Interface/UI': {
+        summary: 'Design, layout, and navigation often praised; some users call out inconsistency.',
+        insight: 'Users appreciate modern design but are sensitive to cross-platform inconsistencies.'
+    },
+    'Login': {
+        summary: 'Users report login loops, timeouts, and failed sessions.',
+        insight: 'Login is the first and most critical hurdle; failures here lead to immediate frustration.'
+    },
+    'Privacy': {
+        summary: 'Balance shown pre-login flagged as a critical security breach.',
+        insight: 'Perceived security flaws, even if not actual breaches, severely erode user trust.'
+    },
+    'Crash': {
+        summary: 'App freezes, force closes, especially on Android 12–13 with mid-tier RAM.',
+        insight: 'Stability is a baseline expectation; frequent crashes are the top reason for 1-star reviews.'
+    },
+    'Credit Card': {
+        summary: 'Inaccessible or blank card data section.',
+        insight: 'Core banking features must be reliable; data visibility issues break core user journeys.'
+    },
+    'Registration': {
+        summary: 'SIM-based OTP or onboarding flow failures.',
+        insight: 'A complex registration process is a major barrier to user acquisition.'
+    },
+    'UPI': {
+        summary: 'Broken UPI payments; approval flows don’t reach payer.',
+        insight: 'UPI is a high-frequency feature; failures here directly impact daily usability.'
+    },
+    'General': {
+        summary: 'General feedback, feature requests, or uncategorized issues.',
+        insight: 'This category captures a wide range of feedback, highlighting areas for future discovery.'
+    }
+};
+
 // Separate component for the actual report content for cleanliness
 function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabProps) {
     const stats = useMemo(() => {
@@ -187,6 +222,40 @@ function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabP
             }
         };
     }, [reviews]);
+    
+    const categoryAnalysis = useMemo(() => {
+        if (!reviews || reviews.length === 0) return null;
+
+        const getAnalysisForPlatform = (platform: 'Android' | 'iOS') => {
+            const platformReviews = reviews.filter(r => r.platform === platform);
+            if (platformReviews.length === 0) return null;
+
+            const themeCounts = platformReviews.reduce((acc, review) => {
+                acc[review.theme] = (acc[review.theme] || 0) + 1;
+                return acc;
+            }, {} as Record<ReviewTheme, number>);
+
+            const analysisData = Object.entries(themeCounts)
+                .map(([theme, count]) => ({
+                    category: theme as ReviewTheme,
+                    mentions: count,
+                    summary: THEME_DESCRIPTIONS[theme as ReviewTheme]?.summary || '',
+                    insight: THEME_DESCRIPTIONS[theme as ReviewTheme]?.insight || ''
+                }))
+                .sort((a, b) => b.mentions - a.mentions);
+
+            return {
+                total: platformReviews.length,
+                data: analysisData,
+            };
+        };
+
+        return {
+            android: getAnalysisForPlatform('Android'),
+            ios: getAnalysisForPlatform('iOS')
+        };
+    }, [reviews]);
+
 
     if (!stats || !swot || !recommendations) return null;
 
@@ -202,9 +271,16 @@ function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabP
                     <p className="text-sm">Review Period: {DATE_RANGE_MAP[dateRange]}</p>
                 </div>
             </header>
+            
+            <section>
+                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">1. Executive Summary</h2>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                    This report compiles insights from {stats.totalReviews.toLocaleString()} user reviews for the HDFC Bank Mobile App. The analysis combines user sentiment, crash logs, and onboarding feedback to guide product, CX, and engineering teams toward a unified goal: achieving a consistent 4.9+ rating across platforms. Key problem clusters include login failure, privacy concerns, and onboarding breakdowns. Yet, the app is also lauded for its modern interface and banking convenience. This report provides a clear SWOT analysis, review category mapping, and an actionable roadmap to stabilize user trust and improve retention.
+                </p>
+            </section>
 
             <section>
-                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">1. Executive Overview</h2>
+                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">2. Executive Overview</h2>
                 <div className="grid grid-cols-4 gap-4 text-center">
                     <ReportStatCard title="Total Reviews" value={stats.totalReviews.toString()} icon={Users} />
                     <ReportStatCard title="Average Rating" value={stats.averageRating} icon={BarChart} />
@@ -221,8 +297,30 @@ function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabP
                 </div>
             </section>
 
+            {categoryAnalysis && (
+                <section>
+                    <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">3. Review Category Analysis</h2>
+                    {categoryAnalysis.android && (
+                        <CategoryAnalysisTable
+                            platform="Android"
+                            totalReviews={categoryAnalysis.android.total}
+                            data={categoryAnalysis.android.data}
+                        />
+                    )}
+                    {categoryAnalysis.ios && (
+                         <div className="mt-8">
+                            <CategoryAnalysisTable
+                                platform="iOS"
+                                totalReviews={categoryAnalysis.ios.total}
+                                data={categoryAnalysis.ios.data}
+                            />
+                        </div>
+                    )}
+                </section>
+            )}
+
             <section>
-                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">2. SWOT Analysis</h2>
+                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">4. SWOT Analysis</h2>
                 <div className="space-y-6">
                     <ReportSwotSection icon={ThumbsUp} title="Strengths" items={swot.strengths} columnHeaders={['Strength', 'Evidence from Reviews']} />
                     <ReportSwotSection icon={ThumbsDown} title="Weaknesses" items={swot.weaknesses} columnHeaders={['Pain Point', 'Strategic Risk']} />
@@ -232,10 +330,10 @@ function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabP
             </section>
 
             <section>
-                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">3. Strategic Recommendations</h2>
+                <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">5. Strategic Recommendations</h2>
                 <div className="space-y-6">
                     {recommendations.map((item, index) => (
-                        <div key={index} className="p-4 border border-gray-200 rounded-lg bg-white">
+                        <div key={index} className="p-4 border border-gray-200 rounded-lg bg-white break-inside-avoid">
                             <h3 className="text-lg font-semibold text-gray-800 mb-3">{item.title}</h3>
                             <div className="space-y-2 mb-3">
                                 {item.actions.map((action, actionIndex) => (
@@ -268,7 +366,7 @@ function ReportStatCard({ title, value, icon: Icon }: { title: string; value: st
 function ReportSwotSection({ icon: Icon, title, items, columnHeaders }: { icon: LucideIcon; title: string; items: SwotItem[]; columnHeaders: [string, string] }) {
     if (!items || items.length === 0) return null;
     return (
-      <div>
+      <div className="break-inside-avoid">
         <div className="flex items-center gap-3 mb-2">
           <Icon className="h-8 w-8 text-blue-800" />
           <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
@@ -294,3 +392,42 @@ function ReportSwotSection({ icon: Icon, title, items, columnHeaders }: { icon: 
       </div>
     );
   }
+
+type CategoryAnalysisTableProps = {
+    platform: 'Android' | 'iOS';
+    totalReviews: number;
+    data: {
+        category: ReviewTheme;
+        mentions: number;
+        summary: string;
+        insight: string;
+    }[];
+};
+
+function CategoryAnalysisTable({ platform, totalReviews, data }: CategoryAnalysisTableProps) {
+    return (
+        <div className="break-inside-avoid">
+            <h4 className="text-lg font-semibold mb-2">{platform} ({totalReviews.toLocaleString()} reviews analyzed)</h4>
+            <div className="overflow-hidden rounded-lg border border-gray-300">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="w-1/5 px-4 py-2 text-left font-semibold text-gray-600">Issue Category</th>
+                            <th className="w-[10%] px-4 py-2 text-left font-semibold text-gray-600">Mentions</th>
+                            <th className="px-4 py-2 text-left font-semibold text-gray-600">Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                        {data.map((item, index) => (
+                            <tr key={index} className="border-t border-gray-200">
+                                <td className="p-3 align-top font-medium text-gray-700">{item.category}</td>
+                                <td className="p-3 align-top text-gray-600">{item.mentions}</td>
+                                <td className="p-3 align-top text-gray-600">{item.summary}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}

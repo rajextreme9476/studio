@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-export type ReviewTheme = 'Login' | 'Privacy' | 'Crash' | 'UPI' | 'Credit Card' | 'Registration' | 'General';
+export type ReviewTheme = 'Login' | 'Privacy' | 'Crash' | 'UPI' | 'Credit Card' | 'Registration' | 'General' | 'Interface/UI';
 
 // Base schema for what the AI will return
 export const ReviewClassificationSchema = z.object({
   id: z.string(),
   sentiment: z.enum(['Positive', 'Negative', 'Neutral']),
-  theme: z.enum(['Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General']),
+  theme: z.enum(['Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General', 'Interface/UI']),
 });
 
 // This is the main schema used throughout the application.
@@ -28,12 +28,12 @@ export const ReviewSchema = z.preprocess(
     platform: z.enum(['iOS', 'Android']),
     author: z.string(),
     rating: z.number().int().min(0).max(5), // allow 0 rating for parsing robustness
-    text: z.string(),
+    text: z.string().optional(), // Allow empty review text
     date: z.string().refine((date) => !isNaN(Date.parse(date)), {
       message: "Invalid date format",
     }),
     sentiment: z.enum(['Positive', 'Negative', 'Neutral']),
-    theme: z.enum(['Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General']),
+    theme: z.enum(['Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General', 'Interface/UI']),
   })
 );
 

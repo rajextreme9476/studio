@@ -32,11 +32,12 @@ const classificationPrompt = ai.definePrompt({
   },
   prompt: `You are an expert review analyst. For the following list of reviews, determine the sentiment and a single, most relevant theme for each.
 
-  The available themes are: 'Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General'.
+  The available themes are: 'Login', 'Privacy', 'Crash', 'UPI', 'Credit Card', 'Registration', 'General', 'Interface/UI'.
   The available sentiments are: 'Positive', 'Negative', 'Neutral'.
 
   Analyze the text of each review and provide its ID, sentiment, and theme.
-  Please provide your response as a JSON object with a "classifications" array.
+  If a review text is empty or nonsensical, classify it as 'Neutral' and 'General'.
+  Please provide your response as a valid JSON object with a "classifications" array.
 
   Reviews to classify:
   {{{reviewsToClassify}}}
@@ -54,9 +55,17 @@ const classifyReviewsFlow = ai.defineFlow(
     if (reviews.length === 0) {
       return [];
     }
+    
+    // Filter out reviews with no text to avoid sending them to the AI
+    const reviewsWithText = reviews.filter(review => review.text && review.text.trim() !== '');
+    const reviewsWithoutText = reviews.filter(review => !review.text || review.text.trim() === '');
+    
+    if (reviewsWithText.length === 0) {
+        return reviews; // Return original reviews if none have text to classify
+    }
 
     // We only need to send the id and text to the AI for classification.
-    const reviewsToClassify = reviews.map((review) => ({
+    const reviewsToClassify = reviewsWithText.map((review) => ({
       id: review.id,
       text: review.text,
     }));
@@ -78,7 +87,7 @@ const classifyReviewsFlow = ai.defineFlow(
     );
 
     // Merge the classifications back into the original review objects.
-    const classifiedReviews = reviews.map((review) => {
+    const classifiedReviews = reviewsWithText.map((review) => {
       const classification = classificationMap.get(review.id);
       if (classification) {
         return {
@@ -91,6 +100,7 @@ const classifyReviewsFlow = ai.defineFlow(
       return review;
     });
 
-    return classifiedReviews;
+    // Combine the classified reviews with the ones that had no text
+    return [...classifiedReviews, ...reviewsWithoutText];
   }
 );

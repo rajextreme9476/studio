@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -54,9 +55,12 @@ export function ReviewUploader({ onUpload, onClassificationChange, isClassifying
         skipEmptyLines: true,
         complete: async (results) => {
           const headers = results.meta.fields;
-          if (!headers || !expectedHeaders.every(h => headers.includes(h))) {
-              const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-              setError(`CSV missing required headers: ${missingHeaders.join(', ')}`);
+          const requiredHeaders = ['Star Rating', 'Review Text', 'Review Submit Date and Time', 'Review Submit Millis Since Epoch', 'Review Link', 'Device'];
+
+          if (!headers || !requiredHeaders.every(h => headers.includes(h))) {
+              const missingHeaders = requiredHeaders.filter(h => !headers?.includes(h));
+              const errorMessage = `CSV missing required headers: ${missingHeaders.join(', ')}`;
+              setError(errorMessage);
               toast({
                   variant: 'destructive',
                   title: 'Invalid CSV Header',
@@ -72,8 +76,8 @@ export function ReviewUploader({ onUpload, onClassificationChange, isClassifying
             const parsedReviews = z.array(ReviewSchema).parse(
               results.data.map((row: any) => ({
                 id: row['Review Link'] || row['Review Submit Millis Since Epoch'] || crypto.randomUUID(),
-                platform: row['Device']?.toLowerCase().includes('phone') ? 'Android' : 'iOS', // A simple guess
-                author: `User ${ (row['Review Submit Millis Since Epoch'] || '').slice(-4)}`, // Create anonymous author
+                platform: row['Device']?.toLowerCase().includes('phone') ? 'Android' : 'iOS',
+                author: `User ${ (row['Review Submit Millis Since Epoch'] || '').slice(-4)}`,
                 rating: parseInt(row['Star Rating'], 10) || 0,
                 text: row['Review Text'] || '',
                 date: new Date(row['Review Submit Date and Time']).toISOString(),
@@ -131,11 +135,12 @@ export function ReviewUploader({ onUpload, onClassificationChange, isClassifying
     [onUpload, toast, onClassificationChange]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     multiple: false,
     accept: { 'text/csv': ['.csv'] },
     disabled: isLoading || isClassifying,
+    noClick: true, // we are using a custom button to open the dialog
   });
   
   const getIcon = () => {
@@ -171,7 +176,7 @@ export function ReviewUploader({ onUpload, onClassificationChange, isClassifying
             </span>
         </div>
       </div>
-      <Button onClick={() => getRootProps().onClick?.(null as any)} disabled={isLoading || isClassifying}>
+      <Button onClick={open} disabled={isLoading || isClassifying}>
         {fileName ? 'Upload New' : 'Upload File'}
       </Button>
     </div>

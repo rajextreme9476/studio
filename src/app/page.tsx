@@ -29,7 +29,6 @@ export default function DashboardPage() {
       if (result.success && result.data) {
         setReviews(result.data);
       } else {
-        console.error(result.error);
         toast({
             variant: 'destructive',
             title: 'Failed to load reviews',

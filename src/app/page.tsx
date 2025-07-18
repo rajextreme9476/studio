@@ -10,7 +10,7 @@ import { RecommendationsTab } from '@/components/dashboard/recommendations-tab';
 import { reviews as rawReviewsData } from '@/lib/data';
 import type { Review, SwotAnalysis } from '@/types';
 import { DateRangeFilter, type DateRange } from '@/components/dashboard/date-range-filter';
-import { subDays, isAfter } from 'date-fns';
+import { subDays, isAfter, parseISO } from 'date-fns';
 
 export default function DashboardPage() {
   const [reviews] = useState<Review[]>(rawReviewsData);
@@ -18,29 +18,34 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>('30d');
 
   const filteredReviews = useMemo(() => {
-    const now = new Date();
+    // Find the latest date in the reviews to use as the "today" for filtering
+    const latestReviewDate = reviews.reduce((latest, review) => {
+      const reviewDate = parseISO(review.date);
+      return reviewDate > latest ? reviewDate : latest;
+    }, new Date(0));
+
     let fromDate: Date;
 
     switch (dateRange) {
       case '7d':
-        fromDate = subDays(now, 7);
+        fromDate = subDays(latestReviewDate, 7);
         break;
       case '30d':
-        fromDate = subDays(now, 30);
+        fromDate = subDays(latestReviewDate, 30);
         break;
       case '90d':
-        fromDate = subDays(now, 90);
+        fromDate = subDays(latestReviewDate, 90);
         break;
       case '180d':
-        fromDate = subDays(now, 180);
+        fromDate = subDays(latestReviewDate, 180);
         break;
       case '1y':
-        fromDate = subDays(now, 365);
+        fromDate = subDays(latestReviewDate, 365);
         break;
       default:
         return reviews;
     }
-    return reviews.filter(review => isAfter(new Date(review.date), fromDate));
+    return reviews.filter(review => isAfter(parseISO(review.date), fromDate));
   }, [reviews, dateRange]);
 
   const handleDateRangeChange = (range: DateRange) => {

@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'HDFC App Insights',
+  title: 'HDFC Bank App',
   description: 'A dashboard to analyze HDFC Bank App reviews',
 };
 

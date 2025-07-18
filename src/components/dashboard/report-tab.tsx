@@ -263,8 +263,8 @@ function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabP
         <div className="space-y-12 font-sans">
             <header className="flex items-center justify-between border-b-2 border-gray-800 pb-4">
                 <div className="flex items-center gap-4">
-                    <Icons.logo className="h-12 w-12 text-blue-800" />
-                    <h1 className="text-4xl font-bold text-gray-800">HDFC App Insights Report</h1>
+                    <Icons.logo className="h-12 w-12 text-primary" />
+                    <h1 className="text-4xl font-bold text-gray-800">HDFC Bank App Report</h1>
                 </div>
                 <div className="text-right">
                     <p className="text-sm">Report Generated: {new Date().toLocaleDateString()}</p>
@@ -275,7 +275,7 @@ function ReportContent({ reviews, swot, recommendations, dateRange }: ReportTabP
             <section>
                 <h2 className="text-2xl font-semibold mb-4 border-b border-gray-400 pb-2">1. Executive Summary</h2>
                 <p className="text-sm text-gray-700 leading-relaxed">
-                    This report compiles insights from {stats.totalReviews.toLocaleString()} user reviews for the HDFC Bank Mobile App. The analysis combines user sentiment, crash logs, and onboarding feedback to guide product, CX, and engineering teams toward a unified goal: achieving a consistent 4.9+ rating across platforms. Key problem clusters include login failure, privacy concerns, and onboarding breakdowns. Yet, the app is also lauded for its modern interface and banking convenience. This report provides a clear SWOT analysis, review category mapping, and an actionable roadmap to stabilize user trust and improve retention.
+                    This report combines insights from {stats.totalReviews.toLocaleString()} user reviews for the HDFC Bank Mobile App. The analysis combines user sentiment, crash logs, and onboarding feedback to guide product, CX, and engineering teams toward a unified goal: achieving a consistent 4.9+ rating across platforms. Key problem clusters include login failure, privacy concerns, and onboarding breakdowns. Yet, the app is also lauded for its modern interface and banking convenience. This report provides a clear SWOT analysis, review category mapping, and an actionable roadmap to stabilize user trust and improve retention.
                 </p>
             </section>
 
@@ -368,7 +368,7 @@ function ReportSwotSection({ icon: Icon, title, items, columnHeaders }: { icon: 
     return (
       <div className="break-inside-avoid">
         <div className="flex items-center gap-3 mb-2">
-          <Icon className="h-8 w-8 text-blue-800" />
+          <Icon className="h-8 w-8 text-primary" />
           <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
         </div>
         <div className="overflow-hidden rounded-lg border border-gray-300">

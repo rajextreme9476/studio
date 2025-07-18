@@ -16,7 +16,7 @@ export function Header() {
       <div className="flex items-center gap-2">
         <Icons.logo className="h-8 w-8 text-primary" />
         <h1 className="text-xl font-bold tracking-tight text-foreground">
-          HDFC App Insights
+          HDFC Bank App
         </h1>
       </div>
       <div className="ml-auto flex items-center gap-4">

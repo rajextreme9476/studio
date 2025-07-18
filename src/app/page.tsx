@@ -7,8 +7,9 @@ import { OverviewTab } from '@/components/dashboard/overview-tab';
 import { ReviewExplorerTab } from '@/components/dashboard/review-explorer-tab';
 import { SwotTab } from '@/components/dashboard/swot-tab';
 import { RecommendationsTab } from '@/components/dashboard/recommendations-tab';
+import { ReportTab } from '@/components/dashboard/report-tab';
 import { ReviewUploader } from '@/components/dashboard/review-uploader';
-import type { Review, SwotAnalysis } from '@/types';
+import type { Review, SwotAnalysis, SuggestImprovementsOutput } from '@/types';
 import { DateRangeFilter, type DateRange } from '@/components/dashboard/date-range-filter';
 import { subDays, isAfter, parseISO } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,14 +19,16 @@ import { UploadCloud } from 'lucide-react';
 export default function DashboardPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [swot, setSwot] = useState<SwotAnalysis | null>(null);
+  const [recommendations, setRecommendations] = useState<SuggestImprovementsOutput['recommendations'] | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [isClassifying, setIsClassifying] = useState(false);
 
 
   const handleReviewsUploaded = (newReviews: Review[]) => {
     setReviews(newReviews);
-    setSwot(null); // Reset analysis when new data is uploaded
-    setDateRange('all'); // Reset date range to show all new data
+    setSwot(null);
+    setRecommendations(null);
+    setDateRange('all');
   };
 
   const filteredReviews = useMemo(() => {
@@ -68,6 +71,7 @@ export default function DashboardPage() {
   const handleDateRangeChange = (range: DateRange) => {
     setDateRange(range);
     setSwot(null);
+    setRecommendations(null);
   };
   
   const renderEmptyState = () => (
@@ -121,6 +125,7 @@ export default function DashboardPage() {
                 <TabsTrigger value="review-explorer">Review Explorer</TabsTrigger>
                 <TabsTrigger value="swot-analysis">SWOT Analysis</TabsTrigger>
                 <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+                <TabsTrigger value="report">Report</TabsTrigger>
               </TabsList>
               <TabsContent value="overview">
                 <OverviewTab reviews={filteredReviews} />
@@ -132,7 +137,15 @@ export default function DashboardPage() {
                 <SwotTab reviews={filteredReviews} onAnalysisComplete={setSwot} />
               </TabsContent>
               <TabsContent value="recommendations">
-                <RecommendationsTab swot={swot} reviews={filteredReviews} />
+                <RecommendationsTab swot={swot} reviews={filteredReviews} onRecommendationsComplete={setRecommendations} />
+              </TabsContent>
+              <TabsContent value="report">
+                <ReportTab 
+                  reviews={filteredReviews}
+                  swot={swot}
+                  recommendations={recommendations}
+                  dateRange={dateRange}
+                />
               </TabsContent>
             </Tabs>
           </>

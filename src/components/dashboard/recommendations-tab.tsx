@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,12 +18,17 @@ import { Bot, Lightbulb } from 'lucide-react';
 type RecommendationsTabProps = {
   swot: SwotAnalysis | null;
   reviews: Review[];
+  onRecommendationsComplete: (recommendations: SuggestImprovementsOutput['recommendations'] | null) => void;
 };
 
-export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
+export function RecommendationsTab({ swot, reviews, onRecommendationsComplete }: RecommendationsTabProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<SuggestImprovementsOutput['recommendations'] | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    onRecommendationsComplete(recommendations);
+  }, [recommendations, onRecommendationsComplete]);
 
   const handleGenerate = async () => {
     if (!swot?.weaknesses || swot.weaknesses.length === 0) {

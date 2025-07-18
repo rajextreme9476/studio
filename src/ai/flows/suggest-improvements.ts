@@ -23,10 +23,14 @@ const SuggestImprovementsInputSchema = z.object({
 });
 export type SuggestImprovementsInput = z.infer<typeof SuggestImprovementsInputSchema>;
 
+const RecommendationItemSchema = z.object({
+    title: z.string().describe('A high-level title for the recommendation, starting with a number (e.g., "1. Enhance Login Security").'),
+    actions: z.array(z.string()).describe('A list of 1-2 specific, actionable steps to implement.'),
+    rationale: z.string().describe('The reasoning and business value behind this recommendation.'),
+});
+
 const SuggestImprovementsOutputSchema = z.object({
-  suggestions: z
-    .string()
-    .describe('A markdown-formatted list of AI-driven suggestions for app improvements, including actionable steps.'),
+  recommendations: z.array(RecommendationItemSchema).describe('A list of 2-4 strategic recommendations.'),
 });
 export type SuggestImprovementsOutput = z.infer<typeof SuggestImprovementsOutputSchema>;
 
@@ -51,12 +55,20 @@ Your recommendations must be based on the specific weaknesses identified in the 
 ---
 
 **Task:**
-Generate a list of 2-4 high-impact, strategic recommendations. For each recommendation, provide a clear title and a few bullet points outlining actionable steps. The output should be in markdown format.
+Generate a list of 2-4 high-impact, strategic recommendations. For each recommendation, provide a clear, numbered title, a list of specific "actions", and a "rationale". The output must be a valid JSON object matching the defined schema.
 
 **Example Format:**
-### 1. Fortify a Security-First UX
-- **Action:** Immediately implement a PIN/Biometric gate for viewing sensitive information like account balances and transaction history.
-- **Rationale:** This directly addresses the significant user privacy concerns (~180 reviews) and positions the app as more secure than competitors who show balances on launch.
+{
+  "recommendations": [
+    {
+      "title": "1. Fortify a Security-First UX",
+      "actions": [
+        "Immediately implement a PIN/Biometric gate for viewing sensitive information like account balances and transaction history."
+      ],
+      "rationale": "This directly addresses the significant user privacy concerns (~180 reviews) and positions the app as more secure than competitors who show balances on launch."
+    }
+  ]
+}
 
 Your suggestions should be concrete, referencing the data provided (e.g., "Address the login failures affecting over 220 users...").
 `,

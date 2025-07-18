@@ -12,8 +12,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { generateRecommendationsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import type { Review, SwotAnalysis } from '@/types';
-import { Bot } from 'lucide-react';
+import type { Review, SwotAnalysis, SuggestImprovementsOutput } from '@/types';
+import { Bot, Lightbulb } from 'lucide-react';
 
 type RecommendationsTabProps = {
   swot: SwotAnalysis | null;
@@ -22,7 +22,7 @@ type RecommendationsTabProps = {
 
 export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<SuggestImprovementsOutput['recommendations'] | null>(null);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
@@ -40,8 +40,8 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
     const result = await generateRecommendationsAction(swot.weaknesses, reviews);
     
     setIsLoading(false);
-    if (result.success && result.data) {
-      setRecommendations(result.data.suggestions);
+    if (result.success && result.data?.recommendations) {
+      setRecommendations(result.data.recommendations);
       toast({
         title: 'Recommendations Generated',
         description: 'Successfully created improvement suggestions.',
@@ -50,7 +50,7 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.error,
+        description: result.error || 'Failed to generate recommendations.',
       });
     }
   };
@@ -59,27 +59,40 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
     if (isLoading) {
       return (
         <div className="space-y-4">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
         </div>
       );
     }
     if (recommendations) {
-      // Using a div with dangerouslySetInnerHTML to render markdown
-      // In a real app, you might use a library like 'marked' or 'react-markdown' for safety.
-      const markup = { __html: recommendations.replace(/\n/g, '<br />').replace(/### (.*)/g, '<h3>$1</h3>').replace(/\* (.*)/g, '<li>$1</li>') };
       return (
-        <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={markup} />
+        <div className="space-y-6">
+          {recommendations.map((item, index) => (
+            <div key={index} className="p-4 border rounded-lg bg-background">
+              <h3 className="text-lg font-semibold text-foreground mb-3">{item.title}</h3>
+              <div className="space-y-2 mb-3">
+                {item.actions.map((action, actionIndex) => (
+                  <p key={actionIndex} className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">Action:</span> {action}
+                  </p>
+                ))}
+              </div>
+               <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                <span className="font-semibold text-foreground">Rationale:</span> {item.rationale}
+              </p>
+            </div>
+          ))}
+        </div>
       );
     }
     return (
-        <div className="text-center text-muted-foreground py-12">
-            <p>
+        <div className="text-center text-muted-foreground py-12 flex flex-col items-center">
+            <Lightbulb className="h-10 w-10 mb-4" />
+            <p className="max-w-md">
                 {swot?.weaknesses && swot.weaknesses.length > 0
-                ? 'Weaknesses identified. Ready to generate recommendations.'
-                : 'Generate a SWOT analysis first to get started.'}
+                ? 'Weaknesses have been identified. Click "Generate Recommendations" to get AI-powered strategic advice on how to improve the app.'
+                : 'Generate a SWOT analysis first. Recommendations are based on the identified weaknesses.'}
             </p>
         </div>
     );

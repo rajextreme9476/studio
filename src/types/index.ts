@@ -52,3 +52,15 @@ export type SwotAnalysis = {
   opportunities: SwotItem[];
   threats: SwotItem[];
 };
+
+const RecommendationItemSchema = z.object({
+    title: z.string(),
+    actions: z.array(z.string()),
+    rationale: z.string(),
+});
+
+export const SuggestImprovementsOutputSchema = z.object({
+  recommendations: z.array(RecommendationItemSchema),
+});
+
+export type SuggestImprovementsOutput = z.infer<typeof SuggestImprovementsOutputSchema>;

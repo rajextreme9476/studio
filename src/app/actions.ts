@@ -25,6 +25,7 @@ export async function generateSwotAction(reviews: Review[]) {
     .filter((r) => r.sentiment === 'Negative')
     .map((r) => r.text)
     .join('\n');
+  const crashCount = reviews.filter(r => r.theme === 'Crash').length;
 
   const marketTrends =
     'Rise of neo-banks, increasing demand for personalized financial services, and adoption of AI-driven customer support.';
@@ -37,6 +38,8 @@ export async function generateSwotAction(reviews: Review[]) {
       negativeReviews,
       marketTrends,
       competitorAnalysis,
+      reviewCount: reviews.length,
+      crashCount,
     });
     return { success: true, data: result };
   } catch (error) {

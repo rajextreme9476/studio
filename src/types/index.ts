@@ -40,9 +40,15 @@ export const ReviewSchema = z.preprocess(
 
 export type Review = z.infer<typeof ReviewSchema>;
 
+export const SwotItemSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+export type SwotItem = z.infer<typeof SwotItemSchema>;
+
 export type SwotAnalysis = {
-  strengths: string;
-  weaknesses: string;
-  opportunities: string;
-  threats: string;
+  strengths: SwotItem[];
+  weaknesses: SwotItem[];
+  opportunities: SwotItem[];
+  threats: SwotItem[];
 };

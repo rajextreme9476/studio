@@ -12,8 +12,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { generateSwotAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import type { Review, SwotAnalysis } from '@/types';
-import { Lightbulb, ShieldCheck, ThumbsDown, Zap, Bot } from 'lucide-react';
+import type { Review, SwotAnalysis, SwotItem } from '@/types';
+import { Bot, ThumbsUp, ThumbsDown, Rocket, AlertTriangle, LucideIcon } from 'lucide-react';
 
 type SwotTabProps = {
   reviews: Review[];
@@ -52,11 +52,35 @@ export function SwotTab({ reviews, onAnalysisComplete }: SwotTabProps) {
     }
     if (swot) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <SwotCard title="Strengths" icon={ShieldCheck} content={swot.strengths} />
-          <SwotCard title="Weaknesses" icon={ThumbsDown} content={swot.weaknesses} />
-          <SwotCard title="Opportunities" icon={Lightbulb} content={swot.opportunities} />
-          <SwotCard title="Threats" icon={Zap} content={swot.threats} />
+        <div className="space-y-8">
+          <SwotSection
+            icon={ThumbsUp}
+            title="Strengths"
+            subtitle="Core Features Driving Positive Sentiment"
+            items={swot.strengths}
+            columnHeaders={['Strength', 'Evidence from Reviews']}
+          />
+          <SwotSection
+            icon={ThumbsDown}
+            title="Weaknesses"
+            subtitle="High-Friction Touchpoints That Limit NPS"
+            items={swot.weaknesses}
+            columnHeaders={['Pain Point', 'Strategic Risk']}
+          />
+          <SwotSection
+            icon={Rocket}
+            title="Opportunities"
+            subtitle="Untapped Features & Experience Wins"
+            items={swot.opportunities}
+            columnHeaders={['Opportunity Area', 'Value Creation Potential']}
+          />
+          <SwotSection
+            icon={AlertTriangle}
+            title="Threats"
+            subtitle="Competitive & Reputational Risks If Gaps Persist"
+            items={swot.threats}
+            columnHeaders={['Threat Source', 'Strategic Consequence']}
+          />
         </div>
       );
     }
@@ -88,55 +112,77 @@ export function SwotTab({ reviews, onAnalysisComplete }: SwotTabProps) {
   );
 }
 
-function SwotCard({ title, icon: Icon, content }: { title: string, icon: React.ElementType, content: string }) {
-    return (
-        <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <Icon className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground whitespace-pre-line flex-grow">
-                {content}
-            </CardContent>
-        </Card>
-    )
+function SwotSection({
+  icon: Icon,
+  title,
+  subtitle,
+  items,
+  columnHeaders,
+}: {
+  icon: LucideIcon;
+  title: string;
+  subtitle: string;
+  items: SwotItem[];
+  columnHeaders: [string, string];
+}) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <Icon className="h-8 w-8 text-primary" />
+        <div>
+          <h3 className="text-xl font-semibold">{title}</h3>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-lg border">
+        <table className="w-full">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="w-1/3 px-4 py-2 text-left text-sm font-semibold text-muted-foreground">{columnHeaders[0]}</th>
+              <th className="px-4 py-2 text-left text-sm font-semibold text-muted-foreground">{columnHeaders[1]}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, index) => (
+              <tr key={index} className="border-t">
+                <td className="p-4 align-top font-medium text-sm">{item.title}</td>
+                <td className="p-4 align-top text-sm text-muted-foreground whitespace-pre-line">{item.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
+
 
 function SwotSkeleton() {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-                <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
-                <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
-                <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
-                <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
-                <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardContent>
-            </Card>
+        <div className="space-y-8">
+            {[...Array(4)].map((_, i) => (
+                <div key={i}>
+                    <div className="flex items-center gap-3 mb-4">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div className="space-y-2">
+                           <Skeleton className="h-5 w-32" />
+                           <Skeleton className="h-4 w-48" />
+                        </div>
+                    </div>
+                    <div className="border rounded-lg p-4 space-y-4">
+                        <div className="flex gap-4">
+                            <Skeleton className="h-12 w-1/3" />
+                            <Skeleton className="h-12 w-2/3" />
+                        </div>
+                        <div className="flex gap-4">
+                            <Skeleton className="h-12 w-1/3" />
+                            <Skeleton className="h-12 w-2/3" />
+                        </div>
+                    </div>
+                </div>
+            ))}
         </div>
     )
 }

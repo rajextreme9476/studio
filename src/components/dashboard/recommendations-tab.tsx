@@ -26,7 +26,7 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
   const { toast } = useToast();
 
   const handleGenerate = async () => {
-    if (!swot?.weaknesses) {
+    if (!swot?.weaknesses || swot.weaknesses.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Prerequisite Missing',
@@ -36,7 +36,8 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
     }
     setIsLoading(true);
     setRecommendations(null);
-    const result = await generateRecommendationsAction(swot.weaknesses, reviews);
+    const weaknessesText = swot.weaknesses.map(w => `${w.title}: ${w.description}`).join('\n');
+    const result = await generateRecommendationsAction(weaknessesText, reviews);
     setIsLoading(false);
     if (result.success && result.data) {
       setRecommendations(result.data.suggestions);
@@ -74,7 +75,7 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
     return (
         <div className="text-center text-muted-foreground py-12">
             <p>
-                {swot?.weaknesses
+                {swot?.weaknesses && swot.weaknesses.length > 0
                 ? 'Weaknesses identified. Ready to generate recommendations.'
                 : 'Generate a SWOT analysis first to get started.'}
             </p>
@@ -93,7 +94,7 @@ export function RecommendationsTab({ swot, reviews }: RecommendationsTabProps) {
                     AI-driven suggestions for app improvements based on weaknesses.
                 </CardDescription>
             </div>
-            <Button onClick={handleGenerate} disabled={isLoading || !swot?.weaknesses}>
+            <Button onClick={handleGenerate} disabled={isLoading || !swot?.weaknesses || swot.weaknesses.length === 0}>
                 <Bot className="mr-2 h-4 w-4" />
                 {isLoading ? 'Generating...' : 'Generate Recommendations'}
             </Button>

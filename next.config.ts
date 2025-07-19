@@ -1,7 +1,10 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: 'export', // 🔥 REQUIRED for static export
+  trailingSlash: true, // 👈 Needed for GitHub Pages
+  basePath: '/studio', // 👈 This must match your repo name on GitHub
+
   typescript: {
     ignoreBuildErrors: true,
   },
